@@ -4,7 +4,7 @@ on:
   pull_request:
 
 jobs:
-  backend:
+  test:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -41,8 +41,17 @@ jobs:
 
   docker:
     needs: [backend, frontend]
+      # Cheapest check first, so a typo fails in seconds instead of minutes.
+      - run: npm run lint
+      - run: npm test
+      - run: npm run test:int
+
+  docker:
+    # No point building an image from code that is already known to be broken.
+    needs: test
+
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - run: docker build -t notes-backend:${{ github.sha }} ./backend
-      - run: docker build --build-arg API_URL=http://localhost:3000 -t notes-frontend:${{ github.sha }} ./frontend
+
